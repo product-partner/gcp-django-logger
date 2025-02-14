@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="gcp-django-logger",
-    version="0.1.0",
+    version="0.1.1",
     author="Chris Vandermey",
     author_email="chris@productpartner.ai",
     description="A Django-compatible logging formatter for Google Cloud Platform",

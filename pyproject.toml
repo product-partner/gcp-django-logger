@@ -1,7 +1,6 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
 build-backend = "setuptools.build_meta"
-
 [tool.black]
 line-length = 100
 target-version = ['py38']
@@ -10,3 +9,6 @@ include = '\.pyi?$'
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+
+[tool.setuptools_scm]
+write_to = "gcp_django_logger/_version.py"

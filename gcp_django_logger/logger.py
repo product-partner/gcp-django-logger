@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
 
 class CloudRunJsonFormatter(logging.Formatter):
     """
@@ -11,7 +11,7 @@ class CloudRunJsonFormatter(logging.Formatter):
     """
     def __init__(self):
         super().__init__()
-        self.is_prod = os.getenv('ENVIRONMENT', 'development').lower() == 'production'
+        self.is_prod = os.getenv('ENVIRONMENT', 'development').lower() == 'prod'
 
     def format(self, record: logging.LogRecord) -> str:
         if self.is_prod:
@@ -31,11 +31,11 @@ class CloudRunJsonFormatter(logging.Formatter):
         log_record = {
             "message": record.getMessage(),
             "severity": severity_map.get(record.levelname, record.levelname),
-            "time": datetime.utcfromtimestamp(record.created).isoformat() + 'Z',
+            "time": datetime.fromtimestamp(record.created, UTC).isoformat(),
             "logging.googleapis.com/sourceLocation": {
                 "file": record.filename,
                 "line": record.lineno,
-                "function": record.funcName
+                "function": str(record.funcName)
             }
         }
 
@@ -43,9 +43,13 @@ class CloudRunJsonFormatter(logging.Formatter):
         if record.exc_info:
             log_record["exception"] = self.formatException(record.exc_info)
 
-        # Include custom fields if present
-        if hasattr(record, 'extra_fields'):
-            log_record.update(record.extra_fields)
+        # Include all extra attributes
+        for key, value in record.__dict__.items():
+            if key not in ['args', 'asctime', 'created', 'exc_info', 'exc_text', 'filename',
+                          'funcName', 'levelname', 'levelno', 'lineno', 'module', 'msecs',
+                          'msg', 'name', 'pathname', 'process', 'processName', 'relativeCreated',
+                          'stack_info', 'thread', 'threadName']:
+                log_record[key] = value
 
         return json.dumps(log_record)
 

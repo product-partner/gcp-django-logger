@@ -97,6 +97,34 @@ LOGGING = {
 }
 ```
 
+## Testing
+
+To run the tests, first install the development dependencies:
+
+```bash
+# Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Install the package in editable mode
+pip install -e .
+```
+
+Then run the tests:
+
+```bash
+python -m pytest tests/test_logger.py -v
+```
+
+The test suite covers:
+- Development and production log formatting
+- Different log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- Extra fields handling
+- Logger setup and configuration
+
 ## License
 
 MIT License

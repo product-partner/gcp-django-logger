@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 from unittest import TestCase, mock
 
 from gcp_django_logger import CloudRunJsonFormatter, setup_logger
@@ -33,9 +34,16 @@ class TestCloudRunJsonFormatter(TestCase):
             formatted = formatter.format(self.log_record)
             log_dict = json.loads(formatted)
             
+            # Check required fields
             self.assertEqual(log_dict["severity"], "INFO")
-            self.assertEqual(log_dict["message"], "Test message")
-            self.assertIn("time", log_dict)
+            self.assertIn("timestamp", log_dict)
+            self.assertTrue(log_dict["timestamp"].endswith("Z"))  # Check for Z-normalization
+            self.assertEqual(log_dict["resource"], {"type": "global"})
+            
+            # Check message in jsonPayload
+            self.assertEqual(log_dict["jsonPayload"]["message"], "Test message")
+            
+            # Check source location
             self.assertEqual(
                 log_dict["logging.googleapis.com/sourceLocation"],
                 {
@@ -49,6 +57,7 @@ class TestCloudRunJsonFormatter(TestCase):
         with mock.patch.dict(os.environ, {"ENVIRONMENT": "prod"}):
             formatter = CloudRunJsonFormatter()
             levels = {
+                logging.NOTSET: "DEFAULT",
                 logging.DEBUG: "DEBUG",
                 logging.INFO: "INFO",
                 logging.WARNING: "WARNING",
@@ -88,8 +97,33 @@ class TestCloudRunJsonFormatter(TestCase):
             formatted = formatter.format(record)
             log_dict = json.loads(formatted)
             
-            self.assertEqual(log_dict["user_id"], "123")
-            self.assertEqual(log_dict["request_id"], "abc-xyz")
+            # Extra fields should be in jsonPayload
+            self.assertEqual(log_dict["jsonPayload"]["user_id"], "123")
+            self.assertEqual(log_dict["jsonPayload"]["request_id"], "abc-xyz")
+
+    def test_exception_handling(self):
+        with mock.patch.dict(os.environ, {"ENVIRONMENT": "prod"}):
+            formatter = CloudRunJsonFormatter()
+            try:
+                raise ValueError("Test error")
+            except ValueError:
+                record = logging.LogRecord(
+                    name="test_logger",
+                    level=logging.ERROR,
+                    pathname="test_file.py",
+                    lineno=42,
+                    msg="Error occurred",
+                    args=(),
+                    exc_info=sys.exc_info()
+                )
+            
+            formatted = formatter.format(record)
+            log_dict = json.loads(formatted)
+            
+            # Check that exception is in jsonPayload
+            self.assertIn("exception", log_dict["jsonPayload"])
+            self.assertIn("ValueError: Test error", log_dict["jsonPayload"]["exception"])
+            self.assertEqual(log_dict["severity"], "ERROR")
 
 
 class TestSetupLogger(TestCase):

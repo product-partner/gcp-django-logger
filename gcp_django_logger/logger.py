@@ -11,11 +11,11 @@ class CloudRunJsonFormatter(logging.Formatter):
     """
     def __init__(self):
         super().__init__()
-        env = os.getenv('ENVIRONMENT', 'development').lower()
-        self.use_gcp_format = env in ['prod', 'staging', 'gamma']
 
     def format(self, record: logging.LogRecord) -> str:
-        if self.use_gcp_format:
+        env = os.getenv('ENVIRONMENT', 'devo').lower()
+        use_gcp_format = env in ['prod', 'staging', 'gamma']
+        if use_gcp_format:
             return self._format_for_cloud_run(record)
         return self._format_for_development(record)
 

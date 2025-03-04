@@ -32,37 +32,25 @@ class CloudRunJsonFormatter(logging.Formatter):
 
         # Create the base log record
         log_record = {
-            # Required fields
-            "resource": {
-                "type": "global"  # Default to global, can be overridden
-            },
+            "message": record.getMessage(),  # Main message at the top level
             "severity": severity_map.get(record.levelname, 'DEFAULT'),
-            "timestamp": datetime.fromtimestamp(record.created, UTC).isoformat() + 'Z',
-            
-            # Standard GCP fields
-            "logging.googleapis.com/sourceLocation": {
-                "file": record.filename,
-                "line": record.lineno,
-                "function": str(record.funcName)
-            },
-            
-            # Put the message and any extra fields in jsonPayload
-            "jsonPayload": {
-                "message": record.getMessage()
-            }
+            "file": record.filename,
+            "line": record.lineno,
+            "function": str(record.funcName),
+            "timestamp": datetime.fromtimestamp(record.created, UTC).isoformat() + 'Z'
         }
 
         # Include exception info if present
         if record.exc_info:
-            log_record["jsonPayload"]["exception"] = self.formatException(record.exc_info)
+            log_record["exception"] = self.formatException(record.exc_info)
 
-        # Include all extra attributes in jsonPayload
+        # Include all extra attributes at the top level
         for key, value in record.__dict__.items():
             if key not in ['args', 'asctime', 'created', 'exc_info', 'exc_text', 'filename',
                           'funcName', 'levelname', 'levelno', 'lineno', 'module', 'msecs',
                           'msg', 'name', 'pathname', 'process', 'processName', 'relativeCreated',
                           'stack_info', 'thread', 'threadName']:
-                log_record["jsonPayload"][key] = value
+                log_record[key] = value
 
         return json.dumps(log_record)
 
